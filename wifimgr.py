@@ -2,10 +2,13 @@ import network
 import socket
 import ure
 import time
+import badger2040
+from badger2040 import WIDTH
 
-ap_ssid = "WifiManager"
-ap_password = "tayfunulu"
-ap_authmode = 3  # WPA2
+display = badger2040.Badger2040()
+
+ap_ssid = "Badger 2040 W"
+ap_password = "badgerbadger"
 
 NETWORK_PROFILES = 'wifi.dat'
 
@@ -84,21 +87,61 @@ def do_connect(ssid, password):
     wlan_sta.active(True)
     if wlan_sta.isconnected():
         return None
+
+    display.set_pen(15)
+    display.clear()
+    display.set_pen(0)
+
+    display.set_font("bitmap8")
+    display.set_pen(0)
+    display.rectangle(0, 0, WIDTH, 20)
+    display.set_pen(15)
+    display.text('Trying to connect to %s.' % ssid, 3, 7, WIDTH, 1)
+    # display.update()
+    display.partial_update(0, 0, WIDTH, 24)
+
+
     print('Trying to connect to %s...' % ssid)
     wlan_sta.connect(ssid, password)
-    for retry in range(200):
+    for retry in range(20):
         connected = wlan_sta.isconnected()
         if connected:
             break
-        time.sleep(0.1)
+        time.sleep(1)
         print('.', end='')
+        display.text('Trying to connect to %s.' % ssid + '.' * (retry + 1), 3, 7, WIDTH, 1)
+        # display.update()
+        display.partial_update(0, 0, WIDTH, 24)
+
+    display.set_pen(15)
+    display.clear()
+    display.set_pen(0)
+
+    display.set_font("bitmap8")
+    display.set_pen(0)
+    display.rectangle(0, 0, WIDTH, 20)
+    display.set_pen(15)
+    
     if connected:
         print('\nConnected. Network config: ', wlan_sta.ifconfig())
+        display.text(f'Connected: {wlan_sta.ifconfig()[0]}', 3, 7, WIDTH, 1)
         
     else:
         print('\nFailed. Not Connected to: ' + ssid)
+        display.text(f'Failed. Not Connected to: {ssid}', 3, 7, WIDTH, 1)
+
+    # display.update()
+    display.partial_update(0, 0, WIDTH, 24)
+
     return connected
 
+def disconnect():
+    if wlan_sta.isconnected():
+        wlan_sta.disconnect()
+        time.sleep(0.1)
+    if wlan_ap.isconnected():
+        wlan_ap.disconnect()
+        time.sleep(0.1)
 
 def send_header(client, status_code=200, content_length=None ):
     client.sendall("HTTP/1.0 {} OK\r\n".format(status_code))
@@ -156,7 +199,7 @@ def handle_root(client):
             <h5>
                 <span style="color: #ff0000;">
                     Your ssid and password information will be saved into the
-                    "%(filename)s" file in your ESP module for future usage.
+                    "%(filename)s" file in your Badger module for future usage.
                     Be careful about security!
                 </span>
             </h5>
@@ -204,7 +247,7 @@ def handle_configure(client, request):
                     <br><br>
                     <h1 style="color: #5e9ca0; text-align: center;">
                         <span style="color: #ff0000;">
-                            ESP successfully connected to WiFi network %(ssid)s.
+                            Badger successfully connected to WiFi network %(ssid)s.
                         </span>
                     </h1>
                     <br><br>
@@ -230,7 +273,7 @@ def handle_configure(client, request):
                 <center>
                     <h1 style="color: #5e9ca0; text-align: center;">
                         <span style="color: #ff0000;">
-                            ESP could not connect to WiFi network %(ssid)s.
+                            Badger could not connect to WiFi network %(ssid)s.
                         </span>
                     </h1>
                     <br><br>
@@ -264,13 +307,22 @@ def start(port=80):
     stop()
 
     wlan_sta.active(True)
-    wlan_ap.active(True)
 
-    wlan_ap.config(essid=ap_ssid, password=ap_password, authmode=ap_authmode)
+    wlan_ap.config(essid=ap_ssid, password=ap_password)
+    wlan_ap.active(True)
 
     server_socket = socket.socket()
     server_socket.bind(addr)
     server_socket.listen(1)
+
+    display.set_pen(15)
+    display.clear()
+    display.set_pen(0)
+
+    display.set_font("bitmap8")
+    display.set_pen(0)
+    display.text(f'Connect to WiFi ssid "{ap_ssid}", default password: "{ap_password}". Open this URL http://192.168.4.1', 3, 4, WIDTH-3, 2)
+    display.update()
 
     print('Connect to WiFi ssid ' + ap_ssid + ', default password: ' + ap_password)
     print('and access the ESP via your favorite web browser at 192.168.4.1.')
